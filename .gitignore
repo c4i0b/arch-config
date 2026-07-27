@@ -1,0 +1,6 @@
+# aconfmgr temp files
+99-unsorted.sh
+tmp/
+
+# Container / dev build artifacts
+.devcontainer/.cache/
