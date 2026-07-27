@@ -1,9 +1,6 @@
 # Configuration files
 # Owner: caio:caio (where applicable)
 
-# pacman.conf is managed by setup-repos.sh (CPU-dependent repos)
-IgnorePath /etc/pacman.conf
-
 CopyFile /etc/default/grub
 CopyFile /etc/mkinitcpio.conf
 CopyFile /etc/plymouth/plymouthd.conf
