@@ -4,9 +4,36 @@ set -euo pipefail
 # Bootstrap third-party repositories
 # Run once before first aconfmgr apply
 # Order: CachyOS first, then Chaotic-AUR
+#
+# CPU detection adapted from CachyOS official cachyos-repo.sh:
+#   - ISA level (v3/v4) via ld-linux (no base-devel needed)
+#   - znver4/5 via /proc/cpuinfo (replaces gcc check, no base-devel needed)
 
-BOOTSTRAP_CONF=$(mktemp /tmp/pacman-bootstrap-XXXXXX.conf)
-trap 'rm -f "$BOOTSTRAP_CONF"' EXIT
+# --- CPU detection ---
+
+detect_cpu_level() {
+    # Returns: znver4 | v4 | v3
+    local family
+
+    # Check znver4/5 via /proc/cpuinfo (AMD family 25=Zen4, 26=Zen5)
+    family=$(awk -F: '/^cpu family/ { gsub(/ /, "", $2); print $2; exit }' /proc/cpuinfo 2>/dev/null || echo "")
+    if [ "$family" = "25" ] || [ "$family" = "26" ]; then
+        echo "znver4"
+        return
+    fi
+
+    # Check x86-64-v4 ISA via ld-linux
+    if /lib/ld-linux-x86-64.so.2 --help 2>/dev/null | grep -q "x86-64-v4 (supported, searched)"; then
+        echo "v4"
+        return
+    fi
+
+    # Default to v3
+    echo "v3"
+}
+
+CPU_LEVEL=$(detect_cpu_level)
+echo ":: Detected CPU level: $CPU_LEVEL"
 
 # --- Init keyring (needed on fresh installs / containers) ---
 
@@ -19,46 +46,24 @@ echo ":: Importing CachyOS key..."
 sudo pacman-key --recv-keys F3B607488DB35A47 --keyserver keyserver.ubuntu.com
 sudo pacman-key --lsign-key F3B607488DB35A47
 
-cat > "$BOOTSTRAP_CONF" << 'EOF'
-[options]
-Architecture = auto
-SigLevel = Never
-
-[cachyos]
-Server = https://mirror.cachyos.org/repo/$arch/$repo
-
-[cachyos-core]
-Server = https://mirror.cachyos.org/repo/$arch/$repo
-
-[cachyos-extra]
-Server = https://mirror.cachyos.org/repo/$arch/$repo
-
-[cachyos-znver4]
-Server = https://mirror.cachyos.org/repo/$arch_v4/$repo
-
-[cachyos-core-znver4]
-Server = https://mirror.cachyos.org/repo/$arch_v4/$repo
-
-[cachyos-extra-znver4]
-Server = https://mirror.cachyos.org/repo/$arch_v4/$repo
-EOF
-
 echo ":: Installing CachyOS keyring and mirrorlists..."
-sudo pacman -Sy --noconfirm --config "$BOOTSTRAP_CONF" \
-    cachyos-keyring \
-    cachyos-mirrorlist \
-    cachyos-v3-mirrorlist \
-    cachyos-v4-mirrorlist
+CACHYOS_MIRROR="https://mirror.cachyos.org/repo/x86_64/cachyos"
+sudo pacman -U --noconfirm \
+    "${CACHYOS_MIRROR}/cachyos-keyring-20240331-1-any.pkg.tar.zst" \
+    "${CACHYOS_MIRROR}/cachyos-mirrorlist-27-1-any.pkg.tar.zst" \
+    "${CACHYOS_MIRROR}/cachyos-v3-mirrorlist-27-1-any.pkg.tar.zst" \
+    "${CACHYOS_MIRROR}/cachyos-v4-mirrorlist-27-1-any.pkg.tar.zst"
 
 # --- Chaotic-AUR ---
 
 echo ":: Importing Chaotic-AUR key..."
-sudo pacman-key --recv-keys 3056513887B78AEB --keyserver keyserver.ubuntu.com
+sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
 sudo pacman-key --lsign-key 3056513887B78AEB
 
 echo ":: Installing Chaotic-AUR keyring and mirrorlist..."
+CHAOTIC_MIRROR="https://cdn-mirror.chaotic.cx/chaotic-aur"
 sudo pacman -U --noconfirm \
-    'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
-    'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+    "${CHAOTIC_MIRROR}/chaotic-keyring.pkg.tar.zst" \
+    "${CHAOTIC_MIRROR}/chaotic-mirrorlist.pkg.tar.zst"
 
-echo ":: Done. Run './aconfmgr apply' next."
+echo ":: Done. Detected CPU level: $CPU_LEVEL. Run './aconfmgr apply' next."
