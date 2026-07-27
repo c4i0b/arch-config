@@ -8,6 +8,11 @@ set -euo pipefail
 BOOTSTRAP_CONF=$(mktemp /tmp/pacman-bootstrap-XXXXXX.conf)
 trap 'rm -f "$BOOTSTRAP_CONF"' EXIT
 
+# --- Init keyring (needed on fresh installs / containers) ---
+
+echo ":: Initializing pacman keyring..."
+sudo pacman-key --init
+
 # --- CachyOS repos ---
 
 echo ":: Importing CachyOS key..."
@@ -15,6 +20,9 @@ sudo pacman-key --recv-keys F3B607488DB35A47 --keyserver keyserver.ubuntu.com
 sudo pacman-key --lsign-key F3B607488DB35A47
 
 cat > "$BOOTSTRAP_CONF" << 'EOF'
+[options]
+Architecture = auto
+
 [cachyos]
 SigLevel = Optional TrustAll
 Server = https://mirror.cachyos.org/repo/$arch/$repo
