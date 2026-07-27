@@ -28,15 +28,17 @@ _cachyos_add_repos() {
         return
     fi
 
-    local variant vmirrorlist
-    case "$cpu_level" in
-        znver4) variant="znver4"; vmirrorlist="cachyos-v4-mirrorlist" ;;
-        v4)     variant="v4";     vmirrorlist="cachyos-v4-mirrorlist" ;;
-        v3)     variant="v3";     vmirrorlist="cachyos-v3-mirrorlist" ;;
-    esac
-
     local block; block=$(mktemp)
-    cat > "$block" << EOF
+
+    case "$cpu_level" in
+        znver4|v4|v3)
+            local variant vmirrorlist
+            case "$cpu_level" in
+                znver4) variant="znver4"; vmirrorlist="cachyos-v4-mirrorlist" ;;
+                v4)     variant="v4";     vmirrorlist="cachyos-v4-mirrorlist" ;;
+                v3)     variant="v3";     vmirrorlist="cachyos-v3-mirrorlist" ;;
+            esac
+            cat > "$block" << EOF
 [cachyos-${variant}]
 Include = /etc/pacman.d/${vmirrorlist}
 
@@ -50,6 +52,17 @@ Include = /etc/pacman.d/${vmirrorlist}
 Include = /etc/pacman.d/cachyos-mirrorlist
 
 EOF
+            ;;
+        x86_64)
+            # Generic only (VMs without v3/v4 support)
+            cat > "$block" << EOF
+[cachyos]
+Include = /etc/pacman.d/cachyos-mirrorlist
+
+EOF
+            ;;
+    esac
+
     local tmp; tmp=$(mktemp)
     awk -v blockfile="$block" '
         /^\[core\]/ && !done {
