@@ -1,50 +1,26 @@
 # arch-config
 
-Declarative system configuration for Arch Linux using [aconfmgr](https://github.com/CyberShadow/aconfmgr).
+Declarative Arch Linux with [aconfmgr](https://github.com/CyberShadow/aconfmgr).
 
-Bundles aconfmgr so the repo is self-contained — no external dependencies beyond `bash` and `pacman`.
-
-## Structure
-
-```
-├── aconfmgr          # aconfmgr script (bundled)
-├── src/              # aconfmgr source (bundled)
-├── setup-repos.sh    # Bootstrap CachyOS + Chaotic-AUR repos
-├── *.sh              # aconfmgr config (numbered by category)
-└── files/            # Config file copies
-```
-
-## Fresh install
-
-Use after [archinstall](https://archlinux.org/download/). Reboot into the new system, then chroot (`arch-chroot /mnt`) or log in as root.
+## Quick start
 
 ```bash
-# As root, install git
-pacman -S --noconfirm git
-
-# Clone as your user
-git clone https://github.com/c4i0b/arch-config.git ~/.config/aconfmgr
-cd ~/.config/aconfmgr
-
-# Bootstrap CachyOS + Chaotic-AUR repos (required before first apply)
-bash setup-repos.sh
-
-# Apply
-./aconfmgr apply
+pacman -S git just
+git clone https://github.com/c4i0b/arch-config.git
+cd arch-config
+just bootstrap
 ```
 
-## Maintenance
+## Commands
 
 ```bash
-# Check for drift (what would change)
-./aconfmgr check
-
-# Save current system state to config
-./aconfmgr save
-
-# Apply config to system
-./aconfmgr apply
+just apply       # apply config to system
+just check       # check for drift
+just save        # save current system state
+just check-all   # validate + lint + format check
 ```
+
+See `just list` for all recipes.
 
 ## System
 
@@ -52,17 +28,3 @@ bash setup-repos.sh
 - **Desktop:** KDE Plasma
 - **Bootloader:** GRUB
 - **GPU:** NVIDIA
-
-## Updating aconfmgr
-
-To update the bundled aconfmgr:
-
-```bash
-# Copy new files from upstream
-cp /path/to/aconfmgr/aconfmgr ./aconfmgr
-cp -r /path/to/aconfmgr/src/ ./src/
-```
-
-## License
-
-aconfmgr is licensed under MIT. Config files are system-specific.
