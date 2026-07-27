@@ -22,29 +22,24 @@ sudo pacman-key --lsign-key F3B607488DB35A47
 cat > "$BOOTSTRAP_CONF" << 'EOF'
 [options]
 Architecture = auto
+SigLevel = Never
 
 [cachyos]
-SigLevel = Optional TrustAll
 Server = https://mirror.cachyos.org/repo/$arch/$repo
 
 [cachyos-core]
-SigLevel = Optional TrustAll
 Server = https://mirror.cachyos.org/repo/$arch/$repo
 
 [cachyos-extra]
-SigLevel = Optional TrustAll
 Server = https://mirror.cachyos.org/repo/$arch/$repo
 
 [cachyos-znver4]
-SigLevel = Optional TrustAll
 Server = https://mirror.cachyos.org/repo/$arch_v4/$repo
 
 [cachyos-core-znver4]
-SigLevel = Optional TrustAll
 Server = https://mirror.cachyos.org/repo/$arch_v4/$repo
 
 [cachyos-extra-znver4]
-SigLevel = Optional TrustAll
 Server = https://mirror.cachyos.org/repo/$arch_v4/$repo
 EOF
 
