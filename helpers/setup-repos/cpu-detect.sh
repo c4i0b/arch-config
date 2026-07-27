@@ -2,17 +2,17 @@
 # No base-devel required (uses ld-linux + /proc/cpuinfo instead of gcc)
 
 detect_cpu_level() {
-    # Returns: znver4 | v4 | v3
+    # Returns: znver4 | v4 | v3 | x86_64
     #
-    # Order matters: check actual ISA support (ld-linux) FIRST,
-    # then refine with CPU model (/proc/cpuinfo).
-    # This prevents false znver4 detection on VMs with host CPU
-    # passthrough where /proc/cpuinfo reports the host family but
-    # the VM doesn't actually support x86-64-v4 instructions.
+    # ld-linux runtime ISA check is the gate for each level.
+    # /proc/cpuinfo only refines v4 → znver4 (never overrides ISA check).
+    # This prevents false detection on VMs with host CPU passthrough.
 
-    # x86-64-v4 ISA via ld-linux (runtime test, not feature flags)
-    if /lib/ld-linux-x86-64.so.2 --help 2>/dev/null | grep -q "x86-64-v4 (supported, searched)"; then
-        # v4 is supported — check for AMD Zen 4/5 for znver4-optimized repos
+    local ld_help
+    ld_help=$(/lib/ld-linux-x86-64.so.2 --help 2>/dev/null || true)
+
+    # x86-64-v4
+    if echo "$ld_help" | grep -q "x86-64-v4 (supported, searched)"; then
         local family
         family=$(awk -F: '/^cpu family/ { gsub(/ /, "", $2); print $2; exit }' /proc/cpuinfo 2>/dev/null || echo "")
         if [ "$family" = "25" ] || [ "$family" = "26" ]; then
@@ -23,6 +23,12 @@ detect_cpu_level() {
         return
     fi
 
-    # Default
-    echo "v3"
+    # x86-64-v3
+    if echo "$ld_help" | grep -q "x86-64-v3 (supported, searched)"; then
+        echo "v3"
+        return
+    fi
+
+    # Plain x86-64 (generic repos only)
+    echo "x86_64"
 }
