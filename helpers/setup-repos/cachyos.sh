@@ -1,4 +1,4 @@
-# CachyOS: key, keyring, mirrorlists, and pacman.conf repo entries
+# CachyOS: key, keyring, mirrorlists, pacman (patched), and pacman.conf repos
 
 CACHYOS_KEY_ID="F3B607488DB35A47"
 CACHYOS_MIRROR="https://mirror.cachyos.org/repo/x86_64/cachyos"
@@ -11,32 +11,17 @@ setup_cachyos() {
     sudo pacman-key --recv-keys "$CACHYOS_KEY_ID" --keyserver keyserver.ubuntu.com
     sudo pacman-key --lsign-key "$CACHYOS_KEY_ID"
 
+    # Install CachyOS keyring, mirrorlists, and patched pacman.
+    # The patched pacman resolves Architecture=auto to include v3/v4
+    # based on actual CPU capability (stock pacman only sees x86_64).
     sudo pacman -U --noconfirm \
         "${CACHYOS_MIRROR}/cachyos-keyring-20240331-1-any.pkg.tar.zst" \
         "${CACHYOS_MIRROR}/cachyos-mirrorlist-27-1-any.pkg.tar.zst" \
         "${CACHYOS_MIRROR}/cachyos-v3-mirrorlist-27-1-any.pkg.tar.zst" \
-        "${CACHYOS_MIRROR}/cachyos-v4-mirrorlist-27-1-any.pkg.tar.zst"
+        "${CACHYOS_MIRROR}/cachyos-v4-mirrorlist-27-1-any.pkg.tar.zst" \
+        "${CACHYOS_MIRROR}/pacman-7.1.0.r9.g54d9411-4-x86_64.pkg.tar.zst"
 
-    _cachyos_set_architecture "$cpu_level"
     _cachyos_add_repos "$cpu_level"
-}
-
-# Stock pacman resolves Architecture=auto to just x86_64 (uname -m).
-# CachyOS's patched pacman detects v3/v4 at runtime. Since we use
-# stock pacman, we must set Architecture explicitly to accept
-# v3/v4 packages from CachyOS repos.
-_cachyos_set_architecture() {
-    local cpu_level="$1"
-    local conf="/etc/pacman.conf"
-
-    local arch
-    case "$cpu_level" in
-        znver4|v4) arch="x86_64 x86_64_v3 x86_64_v4" ;;
-        v3)        arch="x86_64 x86_64_v3" ;;
-        *)         return ;;  # x86_64: auto is fine
-    esac
-
-    sudo sed -i "s/^Architecture = .*/Architecture = ${arch}/" "$conf"
 }
 
 _cachyos_add_repos() {
