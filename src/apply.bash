@@ -258,16 +258,21 @@ function AconfApply() {
 
 	if [[ ${#unknown_packages[@]} != 0 ]]
 	then
-		LogEnter 'Unpinning %s unknown packages.\n' "$(Color G ${#unknown_packages[@]})"
+		if [[ $bootstrap_mode == y ]]
+		then
+			Log 'Skipping %s unknown packages (bootstrap mode).\n' "$(Color G ${#unknown_packages[@]})"
+		else
+			LogEnter 'Unpinning %s unknown packages.\n' "$(Color G ${#unknown_packages[@]})"
 
-		# shellcheck disable=SC2329  # Callback function invoked indirectly
-		function Details() { Log 'Unpinning (setting install reason to '\''as dependency'\'') the following packages:%s\n' "$(Color M " %q" "${unknown_packages[@]}")" ; }
-		Confirm Details
+			# shellcheck disable=SC2329  # Callback function invoked indirectly
+			function Details() { Log 'Unpinning (setting install reason to '\''as dependency'\'') the following packages:%s\n' "$(Color M " %q" "${unknown_packages[@]}")" ; }
+			Confirm Details
 
-		Print0Array unknown_packages | sudo xargs -0 "$PACMAN" --database --asdeps
+			Print0Array unknown_packages | sudo xargs -0 "$PACMAN" --database --asdeps
 
-		modified=y
-		LogLeave
+			modified=y
+			LogLeave
+		fi
 	fi
 
 	# Missing packages (native and foreign packages that are listed in the configuration, but not marked as explicitly installed)
@@ -300,7 +305,10 @@ function AconfApply() {
 
 	local -a files_in_deleted_packages=()
 
-	if ( "$PACMAN" --query --unrequired --unrequired --deps --quiet --native || true ) |
+	if [[ $bootstrap_mode == y ]]
+	then
+		: # skip pruning in bootstrap mode
+	elif ( "$PACMAN" --query --unrequired --unrequired --deps --quiet --native || true ) |
 		   grep -qvFxf <(PrintArray ignore_packages        ) > /dev/null ||
 	   ( "$PACMAN" --query --unrequired --unrequired --deps --quiet --foreign || true ) |
 		   grep -qvFxf <(PrintArray ignore_foreign_packages) > /dev/null
@@ -613,7 +621,11 @@ function AconfApply() {
 
 	if [[ ${#files_to_delete[@]} != 0 ]]
 	then
-		LogEnter 'Deleting %s files.\n' "$(Color G ${#files_to_delete[@]})"
+		if [[ $bootstrap_mode == y ]]
+		then
+			Log 'Skipping deletion of %s files (bootstrap mode).\n' "$(Color G ${#files_to_delete[@]})"
+		else
+			LogEnter 'Deleting %s files.\n' "$(Color G ${#files_to_delete[@]})"
 		printf '%s\0' "${files_to_delete[@]}" | sort --zero-terminated | mapfile -d $'\0' files_to_delete
 
 		# shellcheck disable=2059
@@ -661,11 +673,16 @@ function AconfApply() {
 
 		modified=y
 		LogLeave
+		fi
 	fi
 
 	if [[ ${#files_to_restore[@]} != 0 ]]
 	then
-		LogEnter 'Restoring %s files.\n' "$(Color G ${#files_to_restore[@]})"
+		if [[ $bootstrap_mode == y ]]
+		then
+			Log 'Skipping restoration of %s files (bootstrap mode).\n' "$(Color G ${#files_to_restore[@]})"
+		else
+			LogEnter 'Restoring %s files.\n' "$(Color G ${#files_to_restore[@]})"
 		printf '%s\0' "${files_to_restore[@]}" | sort --zero-terminated | mapfile -d $'\0' files_to_restore
 
 		# shellcheck disable=2059
@@ -730,6 +747,7 @@ function AconfApply() {
 
 		modified=y
 		LogLeave
+		fi
 	fi
 
 	#

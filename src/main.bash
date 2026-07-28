@@ -44,6 +44,7 @@ function Usage() {
 	printf '      --color WHEN         When to use colors in output (always/auto/never)\n'
 	printf '      --paranoid           Always prompt before making any changes to the system\n'
 	printf '      --yes                Never prompt before making any changes to the system\n'
+	printf '      --bootstrap          Like --yes, but skip destructive operations (delete/restore/prune)\n'
 	printf '  -v, --verbose            Show progress with additional detail\n'
 	echo
 	printf 'For more information, please refer to the full documentation at:\n'
@@ -123,6 +124,23 @@ function Main() {
 				then
 					UsageError "A prompt mode has already been specified"
 				fi
+				prompt_mode=never
+				pacman_opts+=(--noconfirm)
+				aurman_opts+=(--noconfirm --noedit --skip_news)
+				pacaur_opts+=(--noconfirm --noedit)
+				yaourt_opts+=(--noconfirm)
+				yay_opts+=(--noconfirm)
+				paru_opts+=(--noconfirm)
+				aura_opts+=(--noconfirm)
+				makepkg_opts+=(--noconfirm)
+				shift
+				;;
+			--bootstrap)
+				if [[ $prompt_mode != normal ]]
+				then
+					UsageError "A prompt mode has already been specified"
+				fi
+				bootstrap_mode=y
 				prompt_mode=never
 				pacman_opts+=(--noconfirm)
 				aurman_opts+=(--noconfirm --noedit --skip_news)

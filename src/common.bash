@@ -1719,6 +1719,7 @@ function AconfReplace() {
 ####################################################################################################
 
 prompt_mode=normal # never / normal / paranoid
+bootstrap_mode=n   # when y, skip destructive operations (delete/restore/prune)
 
 function Confirm() {
 	local detail_func="$1"
