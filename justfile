@@ -12,7 +12,7 @@ bootstrap:
     set -euo pipefail
     bash setup-repos.sh
     sudo pacman -S --noconfirm --needed pacutils expect
-    sudo ./aconfmgr apply
+    sudo ./aconfmgr apply --yes
 
 # ── aconfmgr ──────────────────────────────────────────────
 
