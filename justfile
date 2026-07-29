@@ -81,10 +81,10 @@ status:
     if [ -n "$MISSING" ]; then echo "  MISSING:$MISSING"; PROBLEMS=$((PROBLEMS+1)); else echo "  OK: all installed"; fi
     echo ""
     echo "> Systemd services..."
-    for svc in bluetooth.service NetworkManager-wait-online.service NetworkManager-dispatcher.service ufw.service pacman-offline-prepare.timer; do systemctl is-enabled "$svc" >/dev/null 2>&1 && echo "  OK: $svc" || { echo "  FAIL: $svc"; PROBLEMS=$((PROBLEMS+1)); }; done
+    for svc in ufw.service pacman-offline-prepare.timer; do systemctl is-enabled "$svc" >/dev/null 2>&1 && echo "  OK: $svc" || { echo "  FAIL: $svc"; PROBLEMS=$((PROBLEMS+1)); }; done
     echo ""
     echo "> Config files..."
-    for f in /etc/default/grub /etc/mkinitcpio.conf /etc/plymouth/plymouthd.conf /etc/modprobe.d/snd-hda-intel.conf /etc/brave/policies/managed/policies.json; do [ -f "$f" ] && echo "  OK: $f" || { echo "  FAIL: $f"; PROBLEMS=$((PROBLEMS+1)); }; done
+    for f in /etc/modprobe.d/snd-hda-intel.conf /etc/brave/policies/managed/policies.json; do [ -f "$f" ] && echo "  OK: $f" || { echo "  FAIL: $f"; PROBLEMS=$((PROBLEMS+1)); }; done
     echo ""
     echo "========================================"
     if [ "$PROBLEMS" -eq 0 ]; then echo "  ALL CHECKS PASSED"; else echo "  $PROBLEMS PROBLEM(S) FOUND"; fi

@@ -1,4 +1,4 @@
-"""Systemd services & timers."""
+"""Systemd services that need explicit enabling."""
 
 import decman
 from decman.plugins import systemd
@@ -11,9 +11,6 @@ class Services(decman.Module):
     @systemd.units
     def units(self) -> set[str]:
         return {
-            "bluetooth.service",
-            "NetworkManager-wait-online.service",
-            "NetworkManager-dispatcher.service",
             "ufw.service",
             "pacman-offline-prepare.timer",
         }
