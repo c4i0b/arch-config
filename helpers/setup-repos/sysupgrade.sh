@@ -3,5 +3,5 @@
 
 sysupgrade() {
     echo ":: Performing full system upgrade (downgrades allowed)..."
-    sudo pacman -Suu --noconfirm
+    sudo pacman -Syyuu --noconfirm
 }

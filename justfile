@@ -1,4 +1,4 @@
-# arch-config — declarative Arch Linux with aconfmgr
+# arch-config — declarative Arch Linux with decman
 
 # List available recipes
 @list:
@@ -11,22 +11,23 @@ bootstrap:
     #!/bin/bash
     set -euo pipefail
     bash setup-repos.sh
-    sudo pacman -S --noconfirm --needed pacutils expect
-    sudo ./aconfmgr apply --bootstrap
+    sudo pacman -S --noconfirm --needed python pyalpm python-requests
+    printf 'y\ny\n' | sudo ./decman --source ./source.py
+    sudo pacman -Scc --noconfirm
 
-# ── aconfmgr ──────────────────────────────────────────────
+# ── decman ────────────────────────────────────────────────
 
 # Apply config to system (requires root)
 apply:
-    sudo ./aconfmgr apply
+    sudo ./decman --source ./source.py
 
-# Check for drift against running system
-check:
-    sudo ./aconfmgr check
+# Dry-run: print what would happen
+dry-run:
+    sudo ./decman --source ./source.py --dry-run
 
-# Save current system state to config
-save:
-    sudo ./aconfmgr save
+# Run decman with debug output
+debug:
+    sudo ./decman --source ./source.py --debug
 
 # ── setup ─────────────────────────────────────────────────
 
@@ -38,50 +39,59 @@ setup-repos:
 
 # List packages declared in config
 packages:
-    @grep -h '^AddPackage ' *.sh | sed 's/AddPackage //' | sort
+    @PYTHONPATH=./src python -c "import decman; exec(open('source.py').read()); pkgs=set(); [pkgs.update(getattr(m,n)()) for m in decman.modules for n in dir(m) if hasattr(getattr(getattr(m,n),'__func__',getattr(m,n)),'_decman_pacman_packages')]; [print(p) for p in sorted(pkgs)]"
 
-# List files declared in config
-config-files:
-    @grep -h '^CopyFile ' *.sh | sed 's/CopyFile //' | awk '{print $1}' | sort
-
-# Show system info (OS, kernel, desktop)
+# Show system info
 info:
     @echo "=== System ==="
     @cat /etc/os-release 2>/dev/null | grep -E '^(NAME|VERSION)=' || true
     @echo "Kernel: $(uname -r)"
     @echo "Arch: $(uname -m)"
-    @echo ""
-    @echo "=== Config packages ==="
-    @just packages | wc -l | xargs -I{} echo "{} packages declared"
-    @echo ""
-    @echo "=== Config files ==="
-    @just config-files | wc -l | xargs -I{} echo "{} config files declared"
+    @echo "Python: $(python --version 2>&1)"
 
 # ── validation ────────────────────────────────────────────
 
-# Lint all shell scripts with shellcheck
-lint:
-    @command -v shellcheck >/dev/null 2>&1 || { echo "shellcheck not found, install with: pacman -S shellcheck"; exit 1; }
-    shellcheck -x -s bash *.sh
-
-# Format shell scripts with shfmt
-fmt:
-    @command -v shfmt >/dev/null 2>&1 || { echo "shfmt not found, install with: pacman -S shfmt"; exit 1; }
-    shfmt -w -i 4 -bn -ci -sr *.sh
-
-# Check formatting without modifying (for CI)
-fmt-check:
-    @command -v shfmt >/dev/null 2>&1 || { echo "shfmt not found, install with: pacman -S shfmt"; exit 1; }
-    shfmt -d -i 4 -bn -ci -sr *.sh
-
-# Validate aconfmgr config files parse without errors
+# Validate Python config syntax
 validate:
-    @echo "Checking shell syntax..."
-    @for f in *.sh; do bash -n "$f" || exit 1; done
-    @echo "All config files have valid syntax."
+    #!/bin/bash
+    echo "Checking Python syntax..."
+    python -m py_compile source.py && echo "source.py OK"
+    for f in modules/*.py; do python -m py_compile "$f" && echo "$f OK"; done
+
+# ── status ────────────────────────────────────────────────
+
+# Full system verification — reports drift or problems
+status:
+    #!/bin/bash
+    echo "========================================"
+    echo "  arch-config — system verification"
+    echo "========================================"
+    PROBLEMS=0
+    echo ""
+    echo "> Python syntax..."
+    for f in source.py modules/*.py; do python -m py_compile "$f" 2>/dev/null || { echo "  FAIL: $f"; PROBLEMS=$((PROBLEMS+1)); }; done
+    echo "  OK: all modules compile"
+    echo ""
+    echo "> Declared packages..."
+    DECLARED=$(PYTHONPATH=./src python -c "import decman; exec(open('source.py').read()); pkgs=set(); [pkgs.update(getattr(m,n)()) for m in decman.modules for n in dir(m) if hasattr(getattr(getattr(m,n),'__func__',getattr(m,n)),'_decman_pacman_packages')]; print(chr(10).join(sorted(pkgs)))" 2>/dev/null)
+    TOTAL=$(echo "$DECLARED" | wc -l)
+    INSTALLED=0; MISSING=""
+    for pkg in $DECLARED; do pacman -Q "$pkg" >/dev/null 2>&1 && INSTALLED=$((INSTALLED+1)) || MISSING="$MISSING $pkg"; done
+    echo "  $INSTALLED/$TOTAL installed"
+    if [ -n "$MISSING" ]; then echo "  MISSING:$MISSING"; PROBLEMS=$((PROBLEMS+1)); else echo "  OK: all installed"; fi
+    echo ""
+    echo "> Systemd services..."
+    for svc in bluetooth.service NetworkManager-wait-online.service NetworkManager-dispatcher.service ufw.service pacman-offline-prepare.timer; do systemctl is-enabled "$svc" >/dev/null 2>&1 && echo "  OK: $svc" || { echo "  FAIL: $svc"; PROBLEMS=$((PROBLEMS+1)); }; done
+    echo ""
+    echo "> Config files..."
+    for f in /etc/default/grub /etc/mkinitcpio.conf /etc/plymouth/plymouthd.conf /etc/modprobe.d/snd-hda-intel.conf /etc/brave/policies/managed/policies.json; do [ -f "$f" ] && echo "  OK: $f" || { echo "  FAIL: $f"; PROBLEMS=$((PROBLEMS+1)); }; done
+    echo ""
+    echo "========================================"
+    if [ "$PROBLEMS" -eq 0 ]; then echo "  ALL CHECKS PASSED"; else echo "  $PROBLEMS PROBLEM(S) FOUND"; fi
+    echo "========================================"
 
 # ── combined ──────────────────────────────────────────────
 
 # Run all validation checks
-check-all: validate lint fmt-check
+check-all: validate
     @echo "All checks passed."

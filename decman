@@ -1,0 +1,7 @@
+#!/bin/bash
+set -euo pipefail
+
+# Wrapper to run bundled decman without pip install
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+
+PYTHONPATH="$SCRIPT_DIR/src" exec python -c "from decman.app import main; main()" "$@"

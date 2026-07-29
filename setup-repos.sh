@@ -32,4 +32,4 @@ sudo pacman -Sy
 
 sysupgrade
 
-echo ":: Done. Run './aconfmgr apply' next."
+echo ":: Done. Run './decman --source ./source.py' next."

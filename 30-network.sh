@@ -1,3 +1,0 @@
-# Networking & firewall
-
-AddPackage ufw

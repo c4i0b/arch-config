@@ -1,6 +1,9 @@
-# aconfmgr temp files
-99-unsorted.sh
-tmp/
+# Python
+__pycache__/
+*.pyc
 
-# Container / dev build artifacts
-.devcontainer/.cache/
+# Decman store
+store.json
+
+# aconfmgr/decman temp files
+tmp/
