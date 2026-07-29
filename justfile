@@ -80,9 +80,6 @@ status:
     echo "  $INSTALLED/$TOTAL installed"
     if [ -n "$MISSING" ]; then echo "  MISSING:$MISSING"; PROBLEMS=$((PROBLEMS+1)); else echo "  OK: all installed"; fi
     echo ""
-    echo "> Systemd services..."
-    for svc in ufw.service pacman-offline-prepare.timer; do systemctl is-enabled "$svc" >/dev/null 2>&1 && echo "  OK: $svc" || { echo "  FAIL: $svc"; PROBLEMS=$((PROBLEMS+1)); }; done
-    echo ""
     echo "> Config files..."
     for f in /etc/modprobe.d/snd-hda-intel.conf /etc/brave/policies/managed/policies.json; do [ -f "$f" ] && echo "  OK: $f" || { echo "  FAIL: $f"; PROBLEMS=$((PROBLEMS+1)); }; done
     echo ""

@@ -13,7 +13,6 @@ from modules.desktop import Desktop
 from modules.tools import Tools
 from modules.dev import Dev
 from modules.sysmgmt import SysMgmt
-from modules.services import Services
 from modules.config_files import ConfigFiles
 
 # ── Ignored packages ──────────────────────────────────────
@@ -58,7 +57,6 @@ decman.modules += [
     Tools(),
     Dev(),
     SysMgmt(),
-    Services(),
     ConfigFiles(),
 ]
 
@@ -68,5 +66,4 @@ decman.execution_order = [
     "files",
     "pacman",
     "aur",
-    "systemd",
 ]
